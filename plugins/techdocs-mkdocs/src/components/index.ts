@@ -16,3 +16,4 @@
 
 export * from './MkDocsContent';
 export * from './MkDocsContentTransformers';
+export * from './techDocsPage';

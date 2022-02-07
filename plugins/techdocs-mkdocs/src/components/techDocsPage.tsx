@@ -15,15 +15,6 @@
  */
 
 import React from 'react';
+import { MkDocsContent } from './MkDocsContent';
 
-import { MkDocsContent } from '@backstage/plugin-techdocs-mkdocs';
-
-type TechDocsContentProps = {
-  onLoad?: () => void;
-};
-
-export type TechDocsContentPropsWith<T> = T & TechDocsContentProps;
-
-export const TechDocsContent = (props: TechDocsContentProps) => (
-  <MkDocsContent {...props} />
-);
+export const techDocsPage = <MkDocsContent />;

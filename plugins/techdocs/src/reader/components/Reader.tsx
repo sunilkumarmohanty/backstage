@@ -15,6 +15,8 @@
  */
 
 import React, {
+  Dispatch,
+  SetStateAction,
   PropsWithChildren,
   ComponentType,
   createContext,
@@ -32,14 +34,14 @@ import { EntityName } from '@backstage/catalog-model';
 
 import { TechDocsSearch } from './TechDocsSearch';
 import { TechDocsStatus } from './TechDocsStateIndicator';
-import { TechDocsContent } from './TechDocsContent';
 import { useReaderState } from './useReaderState';
 
-type Props = {
+type Props = PropsWithChildren<{
   entityRef: EntityName;
   withSearch?: boolean;
+  isReady?: boolean;
   onReady?: () => void;
-};
+}>;
 
 const useStyles = makeStyles<BackstageTheme>(theme => ({
   searchBar: {
@@ -55,6 +57,8 @@ const useStyles = makeStyles<BackstageTheme>(theme => ({
 
 type TechDocsReaderValue = ReturnType<typeof useReaderState> & {
   entityName: EntityName;
+  isReady?: boolean;
+  setReady: () => void;
 };
 
 const TechDocsReaderContext = createContext<TechDocsReaderValue>(
@@ -64,12 +68,21 @@ const TechDocsReaderContext = createContext<TechDocsReaderValue>(
 export const TechDocsReaderProvider = ({
   children,
   entityName,
-}: PropsWithChildren<{ entityName: EntityName }>) => {
+  isReady,
+  onReady = () => {},
+}: PropsWithChildren<{
+  entityName: EntityName;
+  isReady?: boolean;
+  onReady?: () => void;
+}>) => {
   const { '*': path } = useParams();
   const { kind, namespace, name } = entityName;
   const state = useReaderState(kind, namespace, name, path);
+
   return (
-    <TechDocsReaderContext.Provider value={{ ...state, entityName }}>
+    <TechDocsReaderContext.Provider
+      value={{ ...state, entityName, isReady, setReady: onReady }}
+    >
       {children}
     </TechDocsReaderContext.Provider>
   );
@@ -85,10 +98,19 @@ export const TechDocsReaderProvider = ({
  * @internal
  */
 export const withTechDocsReaderProvider =
-  <T extends {}>(Component: ComponentType<T>, entityName: EntityName) =>
+  <T extends {}>(
+    Component: ComponentType<T>,
+    entityName: EntityName,
+    isReady?: boolean,
+    onReady?: () => void,
+  ) =>
   (props: T) =>
     (
-      <TechDocsReaderProvider entityName={entityName}>
+      <TechDocsReaderProvider
+        entityName={entityName}
+        isReady={isReady}
+        onReady={onReady}
+      >
         <Component {...props} />
       </TechDocsReaderProvider>
     );
@@ -102,42 +124,41 @@ export const withTechDocsReaderProvider =
  * todo: Make public or stop exporting (ctrl+f "altReaderExperiments")
  * @internal
  */
+
 export const useTechDocsReader = () => useContext(TechDocsReaderContext);
 
 const TechDocsReaderPage = ({
-  onReady = () => {},
   withSearch = true,
+  children,
 }: Omit<Props, 'entityRef'>) => {
   const classes = useStyles();
-  const { content, entityName } = useTechDocsReader();
-  const [loading, setLoading] = useState(true);
-
-  const handleOnLoad = useCallback(() => {
-    setLoading(false);
-    onReady();
-  }, [setLoading, onReady]);
+  const { content, entityName, isReady } = useTechDocsReader();
 
   return (
     <Grid container>
       <Grid item xs={12}>
         <TechDocsStatus />
       </Grid>
-      {!loading && withSearch && (
+      {!isReady && withSearch && (
         <Grid className={classes.searchBar} item xs={12}>
           <TechDocsSearch entityId={entityName} />
         </Grid>
       )}
       {content && (
         <Grid item xs={12}>
-          <TechDocsContent onLoad={handleOnLoad} />
+          {children}
         </Grid>
       )}
     </Grid>
   );
 };
 
-export const Reader = ({ entityRef, ...rest }: Props) => (
-  <TechDocsReaderProvider entityName={entityRef}>
+export const Reader = ({ entityRef, isReady, onReady, ...rest }: Props) => (
+  <TechDocsReaderProvider
+    entityName={entityRef}
+    isReady={isReady}
+    onReady={onReady}
+  >
     <TechDocsReaderPage {...rest} />
   </TechDocsReaderProvider>
 );

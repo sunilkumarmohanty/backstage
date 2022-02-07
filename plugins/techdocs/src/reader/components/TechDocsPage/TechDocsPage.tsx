@@ -14,17 +14,27 @@
  * limitations under the License.
  */
 
-import React, { useCallback, useState } from 'react';
+import React, {
+  ReactNode,
+  PropsWithChildren,
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+} from 'react';
 import { useOutlet } from 'react-router';
 import { useParams } from 'react-router-dom';
-import useAsync from 'react-use/lib/useAsync';
-import { techdocsApiRef } from '../../../api';
-import { TechDocsNotFound } from '../TechDocsNotFound';
-import { LegacyTechDocsPage } from '../LegacyTechDocsPage';
-import { TechDocsEntityMetadata, TechDocsMetadata } from '../../../types';
+import { useAsync } from 'react-use';
+
 import { EntityName } from '@backstage/catalog-model';
 import { useApi } from '@backstage/core-plugin-api';
 import { Page } from '@backstage/core-components';
+import { techDocsPage } from '@backstage/plugin-techdocs-mkdocs';
+
+import { techdocsApiRef } from '../../../api';
+import { TechDocsNotFound } from '../TechDocsNotFound';
+import { TechDocsPageLayout } from '../TechDocsPageLayout';
+import { TechDocsEntityMetadata, TechDocsMetadata } from '../../../types';
 
 export type TechDocsPageRenderFunction = ({
   techdocsMetadataValue,
@@ -34,54 +44,85 @@ export type TechDocsPageRenderFunction = ({
   techdocsMetadataValue?: TechDocsMetadata | undefined;
   entityMetadataValue?: TechDocsEntityMetadata | undefined;
   entityRef: EntityName;
+  isReady: boolean;
   onReady: () => void;
 }) => JSX.Element;
 
-export type TechDocsPageProps = {
-  children?: TechDocsPageRenderFunction | React.ReactNode;
+type TechDocsPageValue = {
+  techdocsMetadataValue?: TechDocsMetadata | undefined;
+  entityMetadataValue?: TechDocsEntityMetadata | undefined;
+  entityRef: EntityName;
+  isReady: boolean;
+  onReady: () => void;
 };
 
-export const TechDocsPage = ({ children }: TechDocsPageProps) => {
-  const outlet = useOutlet();
+const TechDocsPageContext = createContext<TechDocsPageValue>({
+  entityRef: { kind: '', namespace: '', name: '' },
+  isReady: false,
+  onReady: () => {},
+});
 
-  const [documentReady, setDocumentReady] = useState<boolean>(false);
+const TechDocsPageProvider = ({ children }: PropsWithChildren<{}>) => {
   const { namespace, kind, name } = useParams();
+  const [isReady, setReady] = useState<boolean>(false);
 
   const techdocsApi = useApi(techdocsApiRef);
 
-  const { value: techdocsMetadataValue } = useAsync(() => {
-    if (documentReady) {
-      return techdocsApi.getTechDocsMetadata({ kind, namespace, name });
+  const { value: techdocsMetadataValue } = useAsync(async () => {
+    if (isReady) {
+      return await techdocsApi.getTechDocsMetadata({ kind, namespace, name });
     }
-
-    return Promise.resolve(undefined);
-  }, [kind, namespace, name, techdocsApi, documentReady]);
+    return undefined;
+  }, [kind, namespace, name, isReady, techdocsApi]);
 
   const { value: entityMetadataValue, error: entityMetadataError } =
-    useAsync(() => {
-      return techdocsApi.getEntityMetadata({ kind, namespace, name });
+    useAsync(async () => {
+      return await techdocsApi.getEntityMetadata({ kind, namespace, name });
     }, [kind, namespace, name, techdocsApi]);
 
   const onReady = useCallback(() => {
-    setDocumentReady(true);
-  }, [setDocumentReady]);
+    setReady(true);
+  }, [setReady]);
+
+  const value = {
+    entityRef: { namespace, kind, name },
+    entityMetadataValue,
+    techdocsMetadataValue,
+    isReady,
+    onReady,
+  };
 
   if (entityMetadataError) {
     return <TechDocsNotFound errorMessage={entityMetadataError.message} />;
   }
 
-  if (!children) return outlet || <LegacyTechDocsPage />;
+  return (
+    <TechDocsPageContext.Provider value={value}>
+      {children instanceof Function ? children(value) : children}
+    </TechDocsPageContext.Provider>
+  );
+};
+
+export const useTechDocsPage = () => useContext(TechDocsPageContext);
+
+export type TechDocsPageProps = {
+  children?: TechDocsPageRenderFunction | ReactNode;
+};
+
+export const TechDocsPage = ({ children }: TechDocsPageProps) => {
+  const outlet = useOutlet();
+
+  if (!children) {
+    return (
+      <TechDocsPageProvider>
+        <TechDocsPageLayout>{outlet || techDocsPage}</TechDocsPageLayout>
+      </TechDocsPageProvider>
+    );
+  }
 
   return (
     <Page themeId="documentation">
-      {children instanceof Function
-        ? children({
-            techdocsMetadataValue,
-            entityMetadataValue,
-            entityRef: { kind, namespace, name },
-            onReady,
-          })
-        : children}
+      <TechDocsPageProvider>{children}</TechDocsPageProvider>
     </Page>
   );
 };

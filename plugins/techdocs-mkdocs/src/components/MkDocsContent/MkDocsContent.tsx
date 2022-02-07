@@ -20,7 +20,6 @@ import { useApi, configApiRef } from '@backstage/core-plugin-api';
 
 import {
   useTechDocsReader,
-  TechDocsContentPropsWith,
   TechDocsShadowDom,
   TechDocsShadowDomHooks,
 } from '@backstage/plugin-techdocs';
@@ -41,11 +40,9 @@ import {
 
 import { beforeSanitizeElements, afterSanitizeAttributes } from './hooks';
 
-type MkDocsContentProps = TechDocsContentPropsWith<{}>;
-
-export const MkDocsContent = ({ onLoad = () => {} }: MkDocsContentProps) => {
+export const MkDocsContent = () => {
   const configApi = useApi(configApiRef);
-  const { content } = useTechDocsReader();
+  const { content, setReady } = useTechDocsReader();
 
   if (!content) {
     return null;
@@ -78,7 +75,7 @@ export const MkDocsContent = ({ onLoad = () => {} }: MkDocsContentProps) => {
       source={content}
       config={config}
       hooks={hooks}
-      onAttached={onLoad}
+      onAttached={setReady}
     >
       <StylesTransformer />
       <HeaderTransformer />

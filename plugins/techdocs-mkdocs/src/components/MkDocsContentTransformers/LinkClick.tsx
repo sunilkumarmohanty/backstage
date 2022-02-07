@@ -41,7 +41,8 @@ export const LinkClickTransformer = () => {
       const href = target.getAttribute('href');
       const download = target.hasAttribute('download');
 
-      if (!href || !download) return;
+      if (!href || download) return;
+
       if (href.startsWith(baseUrl)) {
         e.preventDefault();
         onClick(e, href);

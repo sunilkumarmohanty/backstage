@@ -16,10 +16,10 @@
 
 export * from './Reader';
 export * from './TechDocsPage';
-export * from './TechDocsPageHeader/TechDocsPageHeader';
+export * from './TechDocsPageHeader';
+export * from './TechDocsPageLayout';
 export * from './TechDocsStateIndicator';
 export * from './TechDocsShadowDom';
-export type { TechDocsContentPropsWith } from './TechDocsContent';
 
 /**
  * Note: this component is currently being exported so that we can rapidly
