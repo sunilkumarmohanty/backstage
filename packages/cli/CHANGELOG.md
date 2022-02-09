@@ -1,5 +1,15 @@
 # @backstage/cli
 
+## 0.13.2-next.1
+
+### Patch Changes
+
+- aeb5c69abb: Introduces a new `--release` parameter to the `backstage-cli versions:bump` command.
+  The release can be either a specific version, for example `0.99.1`, or the latest `main` or `next` release.
+  The default behavior is to bump to the latest `main` release.
+- Updated dependencies
+  - @backstage/release-manifests@0.0.1-next.0
+
 ## 0.13.2-next.0
 
 ### Patch Changes
