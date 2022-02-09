@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 The Backstage Authors
+ * Copyright 2022 The Backstage Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import {
   TechDocsReaderProvider,
 } from '@backstage/plugin-techdocs';
 
+import { techdocsMkdocsPlugin } from '../src/plugin';
 import { MkDocsContent } from '../src/components';
 
 class TechDocsStorageApiImpl implements TechDocsStorageApi {
@@ -49,6 +50,7 @@ const entityName = {
 };
 
 createDevApp()
+  .registerPlugin(techdocsMkdocsPlugin)
   .registerApi({
     api: techdocsStorageApiRef,
     deps: {},
